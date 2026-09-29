@@ -1,0 +1,77 @@
+# Governed metric layer: one definition per metric, versioned in git.
+# The LLM may only select a metric defined here and fill its declared params.
+# It never writes SQL. Undefined metrics are refused, not guessed.
+metrics:
+  total_mrr:
+    type: sql
+    unit: currency
+    description: Total monthly recurring revenue from active subscriptions as of a month (YYYY-MM).
+    params: [as_of]
+    sql: >
+      SELECT ROUND(SUM(mrr), 2) AS value FROM subscriptions
+      WHERE start_month <= :as_of AND (cancel_month IS NULL OR :as_of < cancel_month)
+
+  mrr_by_region:
+    type: sql
+    grouped: true
+    unit: currency
+    description: MRR grouped by region as of a month.
+    params: [as_of]
+    sql: >
+      SELECT c.region AS region, ROUND(SUM(s.mrr), 2) AS value
+      FROM subscriptions s JOIN customers c ON c.customer_id = s.customer_id
+      WHERE s.start_month <= :as_of AND (s.cancel_month IS NULL OR :as_of < s.cancel_month)
+      GROUP BY c.region ORDER BY c.region
+
+  active_customers:
+    type: sql
+    unit: count
+    description: Number of customers with an active subscription as of a month.
+    params: [as_of]
+    sql: >
+      SELECT COUNT(DISTINCT customer_id) AS value FROM subscriptions
+      WHERE start_month <= :as_of AND (cancel_month IS NULL OR :as_of < cancel_month)
+
+  revenue:
+    type: sql
+    unit: currency
+    description: Recognized revenue in a month.
+    params: [month]
+    sql: SELECT ROUND(SUM(revenue), 2) AS value FROM monthly_revenue WHERE month = :month
+
+  gross_margin_pct:
+    type: sql
+    unit: percent
+    description: Gross margin percent in a month.
+    params: [month]
+    sql: >
+      SELECT ROUND(100.0 * (SUM(revenue) - SUM(cogs)) / SUM(revenue), 2) AS value
+      FROM monthly_revenue WHERE month = :month
+
+  new_customers:
+    type: sql
+    unit: count
+    description: Customers who signed up in a month.
+    params: [month]
+    sql: SELECT COUNT(*) AS value FROM customers WHERE signup_month = :month
+
+  churn_rate_pct:
+    type: computed
+    unit: percent
+    description: Logo churn percent in a month = customers who cancelled that month divided by customers active at the start of the month.
+    params: [month]
+    compute: churn_rate_pct
+
+  cohort_retention_pct:
+    type: computed
+    unit: percent
+    description: Percent of a signup cohort still active a number of months later.
+    params: [cohort_month, offset_months]
+    compute: cohort_retention_pct
+
+  mrr_growth_pct:
+    type: computed
+    unit: percent
+    description: Percent change in total MRR between two months.
+    params: [from_month, to_month]
+    compute: mrr_growth_pct

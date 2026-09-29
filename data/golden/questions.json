@@ -1,0 +1,12 @@
+[
+  {"question": "What is total MRR as of June 2026?", "metric": "total_mrr", "params": {"as_of": "2026-06"}, "expect": 750.0},
+  {"question": "Break MRR down by region as of June 2026", "metric": "mrr_by_region", "params": {"as_of": "2026-06"}, "expect_rows": [{"region": "EU", "value": 650.0}, {"region": "US", "value": 100.0}]},
+  {"question": "How many active customers as of June 2026?", "metric": "active_customers", "params": {"as_of": "2026-06"}, "expect": 4},
+  {"question": "What was revenue in March 2026?", "metric": "revenue", "params": {"month": "2026-03"}, "expect": 750.0},
+  {"question": "What was the gross margin in March 2026?", "metric": "gross_margin_pct", "params": {"month": "2026-03"}, "expect": 80.0},
+  {"question": "How many new customers signed up in January 2026?", "metric": "new_customers", "params": {"month": "2026-01"}, "expect": 3},
+  {"question": "What was the churn rate in April 2026?", "metric": "churn_rate_pct", "params": {"month": "2026-04"}, "expect": 25.0},
+  {"question": "What is the 3 month retention of the January 2026 cohort?", "metric": "cohort_retention_pct", "params": {"cohort_month": "2026-01", "offset_months": 3}, "expect": 33.33},
+  {"question": "How much did MRR grow from January to June 2026?", "metric": "mrr_growth_pct", "params": {"from_month": "2026-01", "to_month": "2026-06"}, "expect": 200.0},
+  {"question": "What is our customer lifetime value?", "metric": "customer_lifetime_value", "params": {}, "expect_refusal": true}
+]

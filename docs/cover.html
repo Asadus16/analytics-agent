@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { width:1200px; height:630px; }
+  body { font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;
+         background:linear-gradient(135deg,#042f2e 0%,#0f766e 60%,#115e59 100%);
+         color:#fff; position:relative; overflow:hidden; }
+  .grid { position:absolute; inset:0;
+          background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+                           linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+          background-size:40px 40px; }
+  .glow { position:absolute; width:520px; height:520px; right:-150px; top:-130px;
+          background:radial-gradient(circle,rgba(45,212,191,.5),transparent 62%); }
+  .wrap { position:absolute; inset:0; padding:64px 70px; display:flex; flex-direction:column; }
+  .eyebrow { font-size:15px; letter-spacing:.22em; text-transform:uppercase;
+             color:#5eead4; font-weight:700; }
+  h1 { font-size:60px; line-height:1.02; letter-spacing:-.025em; margin-top:20px; max-width:840px; }
+  .accent { color:#5eead4; }
+  .sub { font-size:21px; color:#d1fae5; margin-top:22px; max-width:700px; line-height:1.45; }
+  .chips { display:flex; flex-wrap:wrap; gap:12px; margin-top:34px; max-width:760px; }
+  .chip { font-size:15px; font-weight:600; padding:9px 16px; border-radius:999px;
+          background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.18); color:#ecfdf5; }
+  .foot { margin-top:auto; display:flex; align-items:center; gap:14px; font-size:15px; color:#99f6e4; }
+  .foot .dot { width:5px; height:5px; border-radius:50%; background:#2dd4bf; }
+  .panel { position:absolute; right:60px; bottom:60px; width:360px;
+           background:rgba(2,44,42,.55); border:1px solid rgba(94,234,212,.28);
+           border-radius:14px; padding:18px 20px; font-size:14px; }
+  .panel .q { color:#5eead4; font-weight:700; }
+  .panel .row { display:flex; justify-content:space-between; margin-top:12px; color:#d1fae5; }
+  .panel .val { font-weight:800; color:#fff; }
+  .panel .sql { margin-top:12px; font-family:"SF Mono",Menlo,monospace; font-size:11.5px;
+                color:#99f6e4; background:rgba(0,0,0,.25); border-radius:8px; padding:8px 10px; }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="glow"></div>
+  <div class="wrap">
+    <div class="eyebrow">AI &middot; Analytics &middot; n8n + Python</div>
+    <h1>Deterministic<br>Analytics <span class="accent">Agent</span></h1>
+    <div class="sub">Ask in plain English. Every number is computed by code through a governed metric layer &mdash; the model never invents a figure.</div>
+    <div class="chips">
+      <div class="chip">Governed metric layer</div>
+      <div class="chip">SQL guardrail (read-only)</div>
+      <div class="chip">Refuses undefined metrics</div>
+      <div class="chip">Audit: exact SQL per number</div>
+      <div class="chip">Golden regression suite</div>
+    </div>
+    <div class="foot"><span>n8n</span><span class="dot"></span><span>FastAPI</span><span class="dot"></span><span>Gemini</span><span class="dot"></span><span>sqlglot</span></div>
+  </div>
+  <div class="panel">
+    <div class="q">&ldquo;MRR by region as of June?&rdquo;</div>
+    <div class="row"><span>EU</span><span class="val">650</span></div>
+    <div class="row"><span>US</span><span class="val">100</span></div>
+    <div class="sql">SELECT region, SUM(mrr) &hellip; GROUP BY region</div>
+  </div>
+</body>
+</html>

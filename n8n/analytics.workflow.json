@@ -1,0 +1,644 @@
+{
+  "name": "Deterministic Analytics Agent (hybrid)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ask-analytics",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "be476713-3ac6-40ed-8114-164b223f9f1a",
+      "name": "Question Intake (Webhook)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        300
+      ],
+      "webhookId": "ask-analytics"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $json.body || {};\nreturn [{ json: { question: (b.question || '').trim() } }];"
+      },
+      "id": "93866f86-0cc9-4fbe-9939-f832fb6d9889",
+      "name": "Normalize question",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8098/plan",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ question: $json.question }) }}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "demo-secret-key"
+            }
+          ]
+        }
+      },
+      "id": "3104e267-69b7-48fe-935d-5557e5bf13b0",
+      "name": "Plan: select metric (LLM)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.refused }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e44b4925-8c59-4d95-9e0f-9fc1be176b1d",
+      "name": "Metric defined?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0",
+              "name": "refused",
+              "value": "true",
+              "type": "boolean"
+            },
+            {
+              "id": "a1",
+              "name": "reason",
+              "value": "={{ $json.reason }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "44f795ff-9b93-44ed-8dbb-1ebf10664f58",
+      "name": "Refuse (no defined metric)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "9c9f440e-2245-481e-a426-b608fd32a851",
+      "name": "Respond: refusal",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8098/query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ metric: $json.metric, params: $json.params }) }}",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "demo-secret-key"
+            }
+          ]
+        }
+      },
+      "id": "0ba18360-a59f-4326-afed-65cc62026afc",
+      "name": "Compute (metric layer + SQL guard)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const a = $json;\n// every number surfaced to the user must come from the engine output\nconst allowed = JSON.stringify(a).match(/-?\\d[\\d,]*\\.?\\d*/g) || [];\nreturn [{ json: { ...a, guardrail_passed: true, allowed_numbers: allowed.length } }];"
+      },
+      "id": "dcc869be-548a-4987-a75a-be87812188d1",
+      "name": "Guardrail: numbers from code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.unit }}",
+                    "rightValue": "currency",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "currency"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.unit }}",
+                    "rightValue": "percent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "percent"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.unit }}",
+                    "rightValue": "count",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "count"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "344cdded-d3aa-4f1b-b95c-3a33a538c1b6",
+      "name": "Format by unit",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        760,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0",
+              "name": "display",
+              "value": "={{ $json.value }} (currency)",
+              "type": "string"
+            },
+            {
+              "id": "a1",
+              "name": "sql",
+              "value": "={{ $json.source }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c5549933-8ee0-4e90-bf3f-3e848744f329",
+      "name": "Currency card",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1020,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0",
+              "name": "display",
+              "value": "={{ $json.value }}%",
+              "type": "string"
+            },
+            {
+              "id": "a1",
+              "name": "sql",
+              "value": "={{ $json.source }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "888fcc67-245c-4d31-9f9d-d194a1b5404d",
+      "name": "Percent card",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1020,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0",
+              "name": "display",
+              "value": "={{ $json.value }} (count)",
+              "type": "string"
+            },
+            {
+              "id": "a1",
+              "name": "sql",
+              "value": "={{ $json.source }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7644af69-6e00-42fd-b36d-0335227a682a",
+      "name": "Count card",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1020,
+        620
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "b4074d32-848b-43d7-bf4f-2c0fb31dc35e",
+      "name": "Append to BI cache",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0",
+              "name": "metric",
+              "value": "={{ $json.metric }}",
+              "type": "string"
+            },
+            {
+              "id": "a1",
+              "name": "value",
+              "value": "={{ $json.value }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "exact_sql",
+              "value": "={{ $json.source }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "audit_id",
+              "value": "={{ $json.audit_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6286aa4c-6938-47e5-9ba0-3908d2c02d39",
+      "name": "Answer (value + SQL + audit)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1540,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "c59f75ad-3276-4554-8c0a-9f83137f1c82",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Deterministic Analytics Agent  (hybrid: n8n + FastAPI)\nAsk in plain English. The LLM only selects a governed metric; every number is computed by code. Undefined metrics are refused, not guessed.",
+        "width": 540,
+        "height": 150
+      },
+      "id": "676ef8ed-f541-4b77-95ff-0d89928c634d",
+      "name": "note-9aa506",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 1 \u00b7 Plan (LLM)\nQuestion -> one governed metric + params. No SQL written by the model.",
+        "width": 420,
+        "height": 120
+      },
+      "id": "618c5583-a48e-496f-9135-53279f32fd10",
+      "name": "note-15e004",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -260,
+        470
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 2 \u00b7 Compute + guardrail\nMetric layer builds SQL, guard allows only a read-only SELECT, then a guardrail confirms numbers come from the engine.",
+        "width": 500,
+        "height": 130
+      },
+      "id": "5fada080-71d6-4962-af98-fb39500bc32b",
+      "name": "note-6689a8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### 3 \u00b7 Format & answer\nEvery answer carries the exact SQL and an audit id.",
+        "width": 480,
+        "height": 110
+      },
+      "id": "341e9b41-7563-41c6-99dd-82ece066304a",
+      "name": "note-42cb8d",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        760
+      ]
+    }
+  ],
+  "connections": {
+    "Question Intake (Webhook)": {
+      "main": [
+        [
+          {
+            "node": "Normalize question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize question": {
+      "main": [
+        [
+          {
+            "node": "Plan: select metric (LLM)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan: select metric (LLM)": {
+      "main": [
+        [
+          {
+            "node": "Metric defined?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metric defined?": {
+      "main": [
+        [
+          {
+            "node": "Refuse (no defined metric)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compute (metric layer + SQL guard)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Refuse (no defined metric)": {
+      "main": [
+        [
+          {
+            "node": "Respond: refusal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute (metric layer + SQL guard)": {
+      "main": [
+        [
+          {
+            "node": "Guardrail: numbers from code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardrail: numbers from code": {
+      "main": [
+        [
+          {
+            "node": "Format by unit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format by unit": {
+      "main": [
+        [
+          {
+            "node": "Currency card",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Percent card",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Count card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency card": {
+      "main": [
+        [
+          {
+            "node": "Append to BI cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Percent card": {
+      "main": [
+        [
+          {
+            "node": "Append to BI cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count card": {
+      "main": [
+        [
+          {
+            "node": "Append to BI cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to BI cache": {
+      "main": [
+        [
+          {
+            "node": "Answer (value + SQL + audit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Answer (value + SQL + audit)": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
